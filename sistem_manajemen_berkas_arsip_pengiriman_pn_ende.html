@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistem Manajemen Data Transaksi & Berkas PDF - PN Ende</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- HEADER -->
+  <header class="bg-gradient-to-r from-[#2b579a] via-[#3b71ca] to-[#4a86e8] text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-[1600px] mx-auto px-3 sm:px-5 lg:px-6 py-3.5">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div class="flex items-start sm:items-center gap-3.5">
+          <div class="bg-white px-2.5 py-1.5 rounded-xl shadow-sm border border-white/40 shrink-0 flex items-center justify-center">
+            <img src="posind-logo.png" alt="Logo PosIND" class="h-10 w-auto object-contain" />
+          </div>
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <h1 class="text-lg sm:text-xl font-bold tracking-tight leading-snug">
+                Sistem Manajemen Data Transaksi & Berkas PDF
+              </h1>
+              <span class="px-2.5 py-0.5 text-xs font-semibold bg-white/20 text-white rounded-full border border-white/25">
+                LNMAPN05863A - PN ENDE
+              </span>
+            </div>
+            <p class="text-xs sm:text-sm text-blue-100 mt-0.5">
+              Arsip Pengiriman & Upload Berkas Relaas • Sheet <code class="bg-white/15 px-1.5 py-0.5 rounded">Data_Transaksi</code>
+            </p>
+          </div>
+        </div>
+
+        <!-- STATUS KONEKSI & TOMBOL SINKRON -->
+        <div class="flex flex-wrap items-center gap-2 self-end md:self-auto">
+          <div id="connectionBadge" class="inline-flex items-center gap-2 bg-white/15 border border-white/20 px-3 py-1.5 rounded-xl text-xs">
+            <span id="connDot" class="w-2 h-2 rounded-full bg-amber-300"></span>
+            <span id="connText" class="font-medium">Siap</span>
+          </div>
+          <button
+            onclick="openModal('modalEndpointConfig')"
+            title="Atur URL Web App Apps Script"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/15 hover:bg-white/25 border border-white/25 text-white transition cursor-pointer"
+          >
+            <i class="fa-solid fa-link"></i>
+            <span>URL Server</span>
+          </button>
+          <button
+            onclick="fetchTransactionsFromServer(true)"
+            id="btnRefreshData"
+            title="Muat Ulang Data dari Google Sheets"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white text-[#2b579a] hover:bg-blue-50 shadow-sm transition cursor-pointer"
+          >
+            <i id="refreshIcon" class="fa-solid fa-arrows-rotate"></i>
+            <span>Sinkron</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- TOAST NOTIFIKASI -->
+  <div id="toastBanner" class="hidden fixed bottom-5 right-5 z-50 max-w-sm bg-slate-800 text-white px-4 py-3 rounded-2xl shadow-xl border border-slate-700 text-xs flex items-center gap-2.5">
+    <i id="toastIcon" class="fa-solid fa-circle-info text-blue-400 text-base shrink-0"></i>
+    <span id="toastMessage" class="leading-relaxed">-</span>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 max-w-[1600px] w-full mx-auto px-3 sm:px-5 lg:px-6 py-5 space-y-5">
+
+    <!-- BANNER PERINGATAN URL SERVER JIKA BELUM DIISI -->
+    <section id="setupUrlBanner" class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div class="flex items-start gap-3 text-xs text-amber-900">
+        <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base mt-0.5 shrink-0"></i>
+        <div>
+          <p class="font-bold text-sm text-amber-950">URL Web App Belum Diatur</p>
+          <p class="mt-0.5">Klik tombol di samping untuk menempelkan URL deployment Web App (<code class="bg-amber-100 px-1 rounded">/exec</code>) agar tabel langsung memuat data dari Google Sheets.</p>
+        </div>
+      </div>
+      <button
+        onclick="openModal('modalEndpointConfig')"
+        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white whitespace-nowrap cursor-pointer"
+      >
+        <i class="fa-solid fa-gear"></i>
+        <span>Atur URL Web App</span>
+      </button>
+    </section>
+
+    <!-- KARTU STATISTIK -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Transaksi</p>
+          <p id="statTotalTrx" class="text-2xl font-bold text-slate-800 mt-1">0</p>
+          <p class="text-xs text-slate-500 mt-1">ID: <span class="font-medium text-slate-700">LNMAPN05863A</span></p>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-blue-50 text-[#4a86e8] flex items-center justify-center text-xl">
+          <i class="fa-solid fa-boxes-packing"></i>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Berkas PDF Terunggah</p>
+          <p id="statUploadedPdf" class="text-2xl font-bold text-emerald-600 mt-1">0</p>
+          <p id="statUploadPercent" class="text-xs text-emerald-600/80 font-medium mt-1">0% lengkap</p>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-file-circle-check"></i>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Belum Ada PDF</p>
+          <p id="statPendingPdf" class="text-2xl font-bold text-amber-600 mt-1">0</p>
+          <p class="text-xs text-slate-500 mt-1">Menunggu unggahan arsip</p>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-file-circle-exclamation"></i>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Bea Keseluruhan</p>
+          <p id="statTotalBea" class="text-2xl font-bold text-slate-800 mt-1">Rp 0</p>
+          <p class="text-xs text-slate-500 mt-1">Ongkir + PPN + HTNB</p>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-receipt"></i>
+        </div>
+      </div>
+    </section>
+
+    <!-- KONTROL PENCARIAN & FILTER -->
+    <section class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-sm">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
+          <div class="relative flex-1 max-w-md">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Cari No Resi, Penerima, Deskripsi, Kota, atau Petugas..."
+              class="w-full pl-10 pr-9 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4a86e8] focus:bg-white transition"
+            />
+            <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label for="statusFilter" class="text-xs font-semibold text-slate-500 whitespace-nowrap">
+              <i class="fa-solid fa-filter mr-1 text-[#4a86e8]"></i>Status PDF:
+            </label>
+            <select
+              id="statusFilter"
+              class="px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4a86e8] focus:bg-white font-medium text-slate-700 cursor-pointer"
+            >
+              <option value="all">Semua Data</option>
+              <option value="uploaded">Sudah Upload PDF</option>
+              <option value="pending">Belum Upload PDF</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2.5">
+          <input type="file" id="csvFileInput" accept=".csv,text/csv" class="hidden" onchange="handleCsvUpload(event)" />
+          <button
+            id="btnImportCsv"
+            onclick="document.getElementById('csvFileInput').click()"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[#4a86e8] hover:bg-[#356ac3] disabled:opacity-60 text-white shadow-sm transition cursor-pointer"
+          >
+            <i class="fa-solid fa-file-csv"></i>
+            <span id="btnImportCsvText">Impor CSV ke Database</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- FILTER RENTANG TANGGAL KIRIM & URUTAN (SORT) -->
+      <div class="mt-3 pt-3 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2.5">
+          <span class="text-xs font-semibold text-slate-500 whitespace-nowrap">
+            <i class="fa-regular fa-calendar-days mr-1 text-[#4a86e8]"></i>Tgl Kirim:
+          </span>
+          <div class="flex flex-wrap items-center gap-2">
+            <input
+              type="date"
+              id="dateStartInput"
+              aria-label="Tanggal Kirim Awal"
+              class="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4a86e8] focus:bg-white text-slate-700 font-medium"
+            />
+            <span class="text-xs font-semibold text-slate-400">s/d</span>
+            <input
+              type="date"
+              id="dateEndInput"
+              aria-label="Tanggal Kirim Akhir"
+              class="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4a86e8] focus:bg-white text-slate-700 font-medium"
+            />
+            <button
+              type="button"
+              id="clearDateFilterBtn"
+              onclick="clearDateFilter()"
+              class="hidden inline-flex items-center gap-1 px-2.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer"
+            >
+              <i class="fa-solid fa-xmark"></i>
+              <span>Reset Tanggal</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <label for="dateSortOrder" class="text-xs font-semibold text-slate-500 whitespace-nowrap">
+            <i class="fa-solid fa-arrow-up-wide-short mr-1 text-[#4a86e8]"></i>Urutkan Tgl Kirim:
+          </label>
+          <select
+            id="dateSortOrder"
+            class="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4a86e8] focus:bg-white font-medium text-slate-700 cursor-pointer"
+          >
+            <option value="asc">Terlama → Terbaru</option>
+            <option value="desc">Terbaru → Terlama</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+        <div>
+          Menampilkan <span id="visibleCount" class="font-bold text-slate-700">0</span> dari <span id="totalCount" class="font-bold text-slate-700">0</span> baris transaksi (Tab: <code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">Data_Transaksi</code>)
+        </div>
+        <div>
+          <i class="fa-solid fa-circle-info text-[#4a86e8] mr-1"></i>Format nama file di Google Drive: <code class="bg-blue-50 text-[#2b579a] px-1.5 py-0.5 rounded font-medium">&lt;No_Resi&gt;.pdf</code>
+        </div>
+      </div>
+    </section>
+
+    <!-- TABEL 11 KOLOM SESUAI DATA_TRANSAKSI -->
+    <section class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+      <div id="tableLoadingBar" class="hidden bg-blue-50 border-b border-blue-100 px-4 py-2.5 text-xs text-[#2b579a] flex items-center gap-2">
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        <span>Memuat data transaksi dari Google Sheets...</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse table-auto">
+          <thead>
+            <tr class="bg-[#4a86e8] text-white text-[11px] uppercase tracking-wide">
+              <th class="py-2.5 px-2 font-semibold border-r border-blue-400/40 whitespace-nowrap">No Resi</th>
+              <th class="py-2.5 px-2 font-semibold border-r border-blue-400/40 whitespace-nowrap">Deskripsi</th>
+              <th class="py-2.5 px-2 font-semibold border-r border-blue-400/40 whitespace-nowrap">ID Pelanggan</th>
+              <th class="py-2.5 px-2 font-semibold border-r border-blue-400/40 whitespace-nowrap">Penerima</th>
+              <th class="py-2.5 px-2 font-semibold border-r border-blue-400/40 whitespace-nowrap">Alamat</th>
+              <th class="py-2.5 px-2 font-semibold border-r border-blue-400/40 whitespace-nowrap">Kota</th>
+              <th class="py-2.5 px-2 font-semibold border-r border-blue-400/40 text-right whitespace-nowrap">Total Bea</th>
+              <th onclick="toggleDateSortOrder()" title="Klik untuk ubah urutan tanggal kirim" class="py-2.5 px-2 font-semibold border-r border-blue-400/40 whitespace-nowrap cursor-pointer hover:bg-[#3b71ca] transition select-none">
+                <span class="inline-flex items-center gap-1">
+                  <span>Tgl Kirim</span>
+                  <i id="tglKirimSortIcon" class="fa-solid fa-sort-up text-white/90"></i>
+                </span>
+              </th>
+              <th class="py-2.5 px-2 font-semibold border-r border-blue-400/40 whitespace-nowrap">Petugas Eintri</th>
+              <th class="py-2.5 px-2 font-semibold border-r border-blue-400/40 whitespace-nowrap">Nip/NIK</th>
+              <th class="py-2.5 px-2 font-semibold text-center whitespace-nowrap bg-[#3b71ca] min-w-[130px]">FILE PDF</th>
+            </tr>
+          </thead>
+          <tbody id="transactionTableBody" class="divide-y divide-slate-200 text-[11px] leading-snug"></tbody>
+        </table>
+      </div>
+
+      <div id="emptyState" class="hidden py-14 px-4 text-center">
+        <div class="w-16 h-16 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3 text-2xl">
+          <i class="fa-solid fa-folder-open"></i>
+        </div>
+        <h3 class="text-base font-semibold text-slate-700">Tidak ada data transaksi ditemukan</h3>
+        <p class="text-sm text-slate-500 mt-1">Pastikan URL Web App sudah terhubung, ubah kata kunci pencarian, atau impor file CSV.</p>
+      </div>
+
+      <!-- PAGINASI 20 BARIS PER HALAMAN -->
+      <div id="paginationBar" class="hidden bg-slate-50/80 border-t border-slate-200 px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+        <div id="paginationInfo" class="font-medium">Halaman 1 dari 1</div>
+        <div id="paginationControls" class="flex flex-wrap items-center gap-1"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bg-white border-t border-slate-200 py-4 px-3 sm:px-5 lg:px-6 mt-8">
+    <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+      <p>Sistem Manajemen Berkas & Arsip Pengiriman • <strong class="text-slate-700">LNMAPN05863A (MA_PENGADILAN NEGERI ENDE)</strong></p>
+      <p>Database Sheet: <code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">Data_Transaksi</code></p>
+    </div>
+  </footer>
+
+  <!-- MODAL KONFIGURASI URL WEB APP -->
+  <div id="modalEndpointConfig" class="hidden fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="bg-[#4a86e8] px-6 py-4 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-link text-lg"></i>
+          <h3 class="font-bold text-base">Konfigurasi Koneksi Google Apps Script</h3>
+        </div>
+        <button onclick="closeModal('modalEndpointConfig')" class="text-white/80 hover:text-white p-1 rounded-lg cursor-pointer">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <form onsubmit="saveGasUrlAndSync(event)" class="p-6 space-y-4">
+        <div>
+          <label for="gasUrlInput" class="block text-xs font-semibold text-slate-600 mb-1.5">
+            URL Web App Deployment (<code class="bg-slate-100 px-1 rounded">/exec</code>)
+          </label>
+          <input
+            type="url"
+            id="gasUrlInput"
+            required
+            placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+            class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4a86e8] focus:bg-white font-mono"
+          />
+          <p class="text-[11px] text-slate-500 mt-1.5">
+            URL ini disimpan otomatis di browser Anda, atau dapat ditanam permanen pada konstanta <code class="bg-slate-100 px-1 rounded">DEFAULT_GAS_WEB_APP_URL</code> di dalam file HTML.
+          </p>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('modalEndpointConfig')" class="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-100 cursor-pointer">
+            Batal
+          </button>
+          <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-[#4a86e8] hover:bg-[#356ac3] text-white cursor-pointer">
+            <i class="fa-solid fa-check"></i>
+            <span>Simpan & Muat Data</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL UPLOAD PDF -->
+  <div id="modalUploadPdf" class="hidden fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="bg-[#4a86e8] px-6 py-4 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-cloud-arrow-up text-lg"></i>
+          <h3 class="font-bold text-base">Unggah Berkas PDF ke Google Drive</h3>
+        </div>
+        <button onclick="closeModal('modalUploadPdf')" class="text-white/80 hover:text-white p-1 rounded-lg cursor-pointer">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-3.5 text-xs space-y-1.5">
+          <div class="flex justify-between">
+            <span class="text-slate-500">No Resi:</span>
+            <span id="uploadTargetResi" class="font-bold text-slate-800 font-mono">-</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Penerima:</span>
+            <span id="uploadTargetPenerima" class="font-semibold text-slate-700 text-right truncate max-w-[260px]">-</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Nama File Otomatis:</span>
+            <span id="uploadAutoFilename" class="font-bold text-[#2b579a] font-mono">-</span>
+          </div>
+        </div>
+
+        <div
+          onclick="document.getElementById('pdfFileInput').click()"
+          class="border-2 border-dashed border-slate-300 hover:border-[#4a86e8] hover:bg-blue-50/40 rounded-2xl p-6 text-center cursor-pointer transition"
+        >
+          <input type="file" id="pdfFileInput" accept="application/pdf,.pdf" class="hidden" onchange="handlePdfFileSelected(event)" />
+          <div class="w-12 h-12 rounded-2xl bg-blue-50 text-[#4a86e8] flex items-center justify-center mx-auto mb-3 text-xl">
+            <i class="fa-solid fa-file-pdf"></i>
+          </div>
+          <p class="text-sm font-semibold text-slate-700">Klik untuk memilih berkas PDF</p>
+          <p class="text-xs text-slate-500 mt-1">Hanya format <span class="font-semibold">.PDF</span> (Maks. disarankan &lt; 25 MB)</p>
+        </div>
+
+        <div id="selectedPdfInfo" class="hidden bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <i class="fa-solid fa-file-pdf text-rose-600 text-xl shrink-0"></i>
+            <div class="min-w-0">
+              <p id="selectedPdfOriginalName" class="text-xs font-semibold text-slate-800 truncate">file.pdf</p>
+              <p id="selectedPdfSize" class="text-[11px] text-slate-500">0 KB</p>
+            </div>
+          </div>
+          <button onclick="resetSelectedPdf()" class="text-xs text-rose-600 hover:underline font-medium shrink-0 cursor-pointer">
+            Hapus
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-slate-50 px-6 py-3.5 border-t border-slate-200 flex items-center justify-end gap-2.5">
+        <button onclick="closeModal('modalUploadPdf')" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-200/70 cursor-pointer">
+          Batal
+        </button>
+        <button
+          id="btnConfirmUploadPdf"
+          onclick="confirmUploadPdf()"
+          disabled
+          class="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold bg-[#4a86e8] hover:bg-[#356ac3] disabled:opacity-50 disabled:cursor-not-allowed text-white cursor-pointer"
+        >
+          <i id="uploadPdfBtnIcon" class="fa-solid fa-paper-plane"></i>
+          <span id="uploadPdfBtnText">Unggah ke Drive</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PREVIEW PDF -->
+  <div id="modalPreviewPdf" class="hidden fixed inset-0 z-50 bg-slate-900/75 flex items-center justify-center p-3 sm:p-6">
+    <div class="bg-white rounded-2xl max-w-4xl w-full h-[88vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="bg-slate-800 px-5 py-3.5 text-white flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <i class="fa-solid fa-file-pdf text-rose-400 text-lg"></i>
+          <div class="min-w-0">
+            <h3 id="previewPdfTitle" class="font-bold text-sm sm:text-base truncate">Pratinjau Dokumen PDF</h3>
+            <p id="previewPdfSubtitle" class="text-xs text-slate-300 truncate">Arsip Pengiriman PN Ende</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <a
+            id="btnModalOpenNewTab"
+            href="#"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white"
+          >
+            <i class="fa-solid fa-up-right-from-square"></i>
+            <span>Buka di Drive</span>
+          </a>
+          <button
+            type="button"
+            id="btnModalDownloadPdf"
+            onclick="downloadActivePreviewPdf()"
+            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer"
+          >
+            <i id="modalDownloadIcon" class="fa-solid fa-download"></i>
+            <span>Unduh PDF</span>
+          </button>
+          <button onclick="closePreviewModal()" class="text-slate-300 hover:text-white p-1.5 rounded-lg cursor-pointer">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+      </div>
+      <div class="relative flex-1 bg-slate-700">
+        <div id="pdfPreviewLoading" class="hidden absolute inset-0 z-10 bg-slate-800/90 text-white flex flex-col items-center justify-center gap-3 p-6 text-center">
+          <i class="fa-solid fa-spinner fa-spin text-3xl text-blue-400"></i>
+          <p class="text-sm font-medium">Memuat berkas PDF dari Google Drive...</p>
+        </div>
+        <div id="pdfPreviewError" class="hidden absolute inset-0 z-10 bg-slate-100 text-slate-700 flex flex-col items-center justify-center gap-3 p-6 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center text-2xl">
+            <i class="fa-solid fa-file-circle-xmark"></i>
+          </div>
+          <p class="text-sm font-bold text-slate-800">Berkas PDF tidak dapat ditampilkan</p>
+          <p id="pdfPreviewErrorText" class="text-xs text-slate-600 max-w-md leading-relaxed"></p>
+        </div>
+        <iframe id="pdfPreviewFrame" class="w-full h-full border-0" title="Pratinjau PDF"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // URL Web App Google Apps Script (/exec) agar langsung terhubung otomatis
+    const DEFAULT_GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxu5XC4Pje9AtiHD0xYLeIwLR8QYGihA5YwgkEjgB5_MB4z4oPFcBJSPtZgHyenlIuqYg/exec";
+    const TARGET_CUSTOMER_ID = "LNMAPN05863A";
+    const STORAGE_GAS_URL_KEY = "pn_ende_gas_url_direct_v2";
+    const ROWS_PER_PAGE = 20;
+
+    let rowsData = [];
+    let currentPage = 1;
+    let activeResi = null;
+    let pendingPdfFile = null;
+    let toastTimer = null;
+
+    function getGasUrl() {
+      const saved = (localStorage.getItem(STORAGE_GAS_URL_KEY) || "").trim();
+      if (saved && !saved.includes("GANTI_DENGAN_DEPLOYMENT_ID_ANDA")) {
+        return saved;
+      }
+      return DEFAULT_GAS_WEB_APP_URL.trim();
+    }
+
+    function isGasUrlConfigured() {
+      const url = getGasUrl();
+      return Boolean(url) && !url.includes("GANTI_DENGAN_DEPLOYMENT_ID_ANDA");
+    }
+
+    function setConnectionStatus(state, label) {
+      const dot = document.getElementById("connDot");
+      const text = document.getElementById("connText");
+      text.textContent = label;
+      dot.className = "w-2 h-2 rounded-full " + (
+        state === "connected" ? "bg-emerald-400" :
+        state === "error" ? "bg-rose-400" :
+        "bg-amber-300 animate-pulse"
+      );
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      const currentUrl = getGasUrl();
+      document.getElementById("gasUrlInput").value = isGasUrlConfigured() ? currentUrl : "";
+
+      document.getElementById("searchInput").addEventListener("input", () => {
+        const v = document.getElementById("searchInput").value;
+        document.getElementById("clearSearchBtn").classList.toggle("hidden", v.length === 0);
+        currentPage = 1;
+        renderAll();
+      });
+      document.getElementById("statusFilter").addEventListener("change", () => {
+        currentPage = 1;
+        renderAll();
+      });
+      ["dateStartInput", "dateEndInput"].forEach(id => {
+        document.getElementById(id).addEventListener("change", () => {
+          updateDateResetBtn();
+          currentPage = 1;
+          renderAll();
+        });
+      });
+      document.getElementById("dateSortOrder").addEventListener("change", () => {
+        updateDateSortIcon();
+        currentPage = 1;
+        renderAll();
+      });
+      updateDateSortIcon();
+
+      if (!isGasUrlConfigured()) {
+        setConnectionStatus("error", "URL Belum Diatur");
+        document.getElementById("setupUrlBanner").classList.remove("hidden");
+        renderAll();
+      } else {
+        fetchTransactionsFromServer(false);
+      }
+    });
+
+    function saveGasUrlAndSync(e) {
+      e.preventDefault();
+      const val = document.getElementById("gasUrlInput").value.trim();
+      if (!val) return;
+      localStorage.setItem(STORAGE_GAS_URL_KEY, val);
+      document.getElementById("setupUrlBanner").classList.add("hidden");
+      closeModal("modalEndpointConfig");
+      fetchTransactionsFromServer(true);
+    }
+
+    function showToast(message, type = "info") {
+      const banner = document.getElementById("toastBanner");
+      const icon = document.getElementById("toastIcon");
+      const msg = document.getElementById("toastMessage");
+
+      msg.textContent = message;
+      icon.className = "fa-solid text-base shrink-0 " + (
+        type === "success" ? "fa-circle-check text-emerald-400" :
+        type === "error" ? "fa-circle-exclamation text-rose-400" :
+        "fa-circle-info text-blue-400"
+      );
+
+      banner.classList.remove("hidden");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        banner.classList.add("hidden");
+      }, 4500);
+    }
+
+    async function callGasPost(payload) {
+      if (!isGasUrlConfigured()) {
+        openModal("modalEndpointConfig");
+        throw new Error("URL Web App Google Apps Script belum diatur.");
+      }
+
+      const response = await fetchWithTimeout(getGasUrl(), {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload)
+      }, 30000);
+
+      if (!response.ok) {
+        throw new Error(`HTTP Error ${response.status} saat menghubungi Apps Script.`);
+      }
+
+      const rawText = await response.text();
+      let result;
+      try {
+        result = JSON.parse(rawText);
+      } catch (e) {
+        throw new Error("Respons POST Web App bukan JSON valid.");
+      }
+      if (!result || result.success === false) {
+        throw new Error((result && result.message) || "Permintaan ke Apps Script gagal.");
+      }
+      return result;
+    }
+
+    async function fetchWithTimeout(url, options = {}, timeoutMs = 20000) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        return await fetch(url, { ...options, signal: controller.signal });
+      } catch (err) {
+        if (err && err.name === "AbortError") {
+          throw new Error("Koneksi ke Google Apps Script melebihi batas waktu (timeout). Periksa akses Web App atau jaringan.");
+        }
+        throw err;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function callGasGet(params = {}) {
+      if (!isGasUrlConfigured()) {
+        openModal("modalEndpointConfig");
+        throw new Error("URL Web App Google Apps Script belum diatur.");
+      }
+
+      const url = new URL(getGasUrl());
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== "") {
+          url.searchParams.set(k, String(v));
+        }
+      });
+
+      const response = await fetchWithTimeout(url.toString(), { method: "GET" }, 20000);
+      if (!response.ok) {
+        throw new Error(`HTTP Error ${response.status} saat memuat data dari Apps Script.`);
+      }
+
+      const rawText = await response.text();
+      let result;
+      try {
+        result = JSON.parse(rawText);
+      } catch (e) {
+        throw new Error("Respons Web App bukan JSON valid (pastikan deployment diatur 'Who has access: Anyone' dan mengarah ke /exec).");
+      }
+
+      if (!result || result.success === false) {
+        throw new Error((result && result.message) || "Gagal memuat data dari Apps Script.");
+      }
+      return result;
+    }
+
+    async function fetchTransactionsFromServer(showSuccessToast = false) {
+      const loadingBar = document.getElementById("tableLoadingBar");
+      const refreshIcon = document.getElementById("refreshIcon");
+      loadingBar.classList.remove("hidden");
+      refreshIcon.classList.add("fa-spin");
+      setConnectionStatus("loading", "Menyinkronkan...");
+
+      try {
+        const res = await callGasGet();
+        const details = Array.isArray(res.detailTransaksi) ? res.detailTransaksi : [];
+
+        rowsData = details
+          .filter(item => !item.idPelanggan || item.idPelanggan.toUpperCase() === TARGET_CUSTOMER_ID)
+          .map(item => ({
+            noResi: item.noResi || "",
+            layanan: item.layanan || "",
+            kodeBooking: item.kodeBooking || "",
+            deskripsi: item.deskripsi || "",
+            idPelanggan: item.idPelanggan || TARGET_CUSTOMER_ID,
+            namaPengirim: item.namaPengirim || "",
+            penerima: item.namaPenerima || item.penerima || "",
+            alamat: item.alamat || "",
+            kota: item.kota || "",
+            kodePos: item.kodePos || "",
+            berat: Number(item.berat || 0),
+            ongkir: Number(item.ongkir || 0),
+            ppn: Number(item.ppn || 0),
+            htnb: Number(item.htnb || 0),
+            totalBea: Number(item.total || item.totalBea || 0),
+            tglKirim: formatDisplayDate(item.tglTrx || item.tglKirim || ""),
+            rawDateSort: normalizeIsoDate(item.tglTrx || item.tglKirim || ""),
+            jenis: item.jenis || "",
+            petugas: item.petugas || "",
+            nip: item.nip || "",
+            pdfUrl: item.filePdf || "",
+            pdfName: item.filePdf ? `${item.noResi}.pdf` : ""
+          }))
+          .sort((a, b) => String(a.rawDateSort).localeCompare(String(b.rawDateSort)));
+
+        setConnectionStatus("connected", "Terhubung ke Database");
+        document.getElementById("setupUrlBanner").classList.add("hidden");
+        renderAll();
+        if (showSuccessToast) {
+          showToast(`Database tersinkronisasi (${rowsData.length} transaksi).`, "success");
+        }
+      } catch (err) {
+        setConnectionStatus("error", "Koneksi Gagal");
+        showToast("Gagal memuat data: " + err.message, "error");
+        renderAll();
+      } finally {
+        loadingBar.classList.add("hidden");
+        refreshIcon.classList.remove("fa-spin");
+      }
+    }
+
+    function normalizeIsoDate(raw) {
+      const str = String(raw || "").trim();
+      if (!str) return "";
+      let m = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+      m = str.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+      if (m) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+      return "";
+    }
+
+    function formatDisplayDate(isoOrRaw) {
+      const str = String(isoOrRaw || "").trim();
+      const m = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!m) return str;
+      const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+      const monthIdx = parseInt(m[2], 10) - 1;
+      return `${m[3]}-${months[monthIdx] || m[2]}-${m[1]}`;
+    }
+
+    function updateDateResetBtn() {
+      const start = document.getElementById("dateStartInput").value;
+      const end = document.getElementById("dateEndInput").value;
+      document.getElementById("clearDateFilterBtn").classList.toggle("hidden", !start && !end);
+    }
+
+    function updateDateSortIcon() {
+      const order = document.getElementById("dateSortOrder").value;
+      const icon = document.getElementById("tglKirimSortIcon");
+      if (!icon) return;
+      icon.className = order === "desc"
+        ? "fa-solid fa-sort-down text-white/90"
+        : "fa-solid fa-sort-up text-white/90";
+    }
+
+    function toggleDateSortOrder() {
+      const sel = document.getElementById("dateSortOrder");
+      sel.value = sel.value === "asc" ? "desc" : "asc";
+      updateDateSortIcon();
+      currentPage = 1;
+      renderAll();
+    }
+
+    function clearDateFilter() {
+      document.getElementById("dateStartInput").value = "";
+      document.getElementById("dateEndInput").value = "";
+      updateDateResetBtn();
+      currentPage = 1;
+      renderAll();
+    }
+
+    function renderAll() {
+      renderStats();
+      renderTable();
+    }
+
+    function renderStats() {
+      const total = rowsData.length;
+      const uploaded = rowsData.filter(r => Boolean(r.pdfUrl)).length;
+      const pending = total - uploaded;
+      const totalBea = rowsData.reduce((acc, r) => acc + (Number(r.totalBea) || 0), 0);
+      const pct = total > 0 ? Math.round((uploaded / total) * 100) : 0;
+
+      document.getElementById("statTotalTrx").textContent = total.toLocaleString("id-ID");
+      document.getElementById("statUploadedPdf").textContent = uploaded.toLocaleString("id-ID");
+      document.getElementById("statUploadPercent").textContent = `${pct}% lengkap`;
+      document.getElementById("statPendingPdf").textContent = pending.toLocaleString("id-ID");
+      document.getElementById("statTotalBea").textContent = `Rp ${totalBea.toLocaleString("id-ID")}`;
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById("transactionTableBody");
+      const empty = document.getElementById("emptyState");
+      const q = document.getElementById("searchInput").value.trim().toLowerCase();
+      const filter = document.getElementById("statusFilter").value;
+      const dateStart = document.getElementById("dateStartInput").value;
+      const dateEnd = document.getElementById("dateEndInput").value;
+      const sortOrder = document.getElementById("dateSortOrder").value;
+
+      const filtered = rowsData.filter(r => {
+        const hasPdf = Boolean(r.pdfUrl);
+        if (filter === "uploaded" && !hasPdf) return false;
+        if (filter === "pending" && hasPdf) return false;
+
+        if (dateStart || dateEnd) {
+          const rowIso = r.rawDateSort || normalizeIsoDate(r.tglKirim);
+          if (!rowIso) return false;
+          if (dateStart && rowIso < dateStart) return false;
+          if (dateEnd && rowIso > dateEnd) return false;
+        }
+
+        if (!q) return true;
+        return [
+          r.noResi, r.deskripsi, r.idPelanggan,
+          r.penerima, r.alamat, r.kota,
+          r.tglKirim, r.petugas, r.nip
+        ].some(v => String(v || "").toLowerCase().includes(q));
+      });
+
+      filtered.sort((a, b) => {
+        const cmp = String(a.rawDateSort || "").localeCompare(String(b.rawDateSort || ""));
+        return sortOrder === "desc" ? -cmp : cmp;
+      });
+
+      const paginationBar = document.getElementById("paginationBar");
+
+      if (filtered.length === 0) {
+        document.getElementById("visibleCount").textContent = "0";
+        document.getElementById("totalCount").textContent = rowsData.length.toLocaleString("id-ID");
+        tbody.innerHTML = "";
+        empty.classList.remove("hidden");
+        paginationBar.classList.add("hidden");
+        return;
+      }
+
+      const totalPages = Math.max(1, Math.ceil(filtered.length / ROWS_PER_PAGE));
+      if (currentPage > totalPages) currentPage = totalPages;
+      if (currentPage < 1) currentPage = 1;
+
+      const startIdx = (currentPage - 1) * ROWS_PER_PAGE;
+      const endIdx = Math.min(startIdx + ROWS_PER_PAGE, filtered.length);
+      const pageRows = filtered.slice(startIdx, endIdx);
+
+      document.getElementById("visibleCount").textContent = `${startIdx + 1}–${endIdx}`;
+      document.getElementById("totalCount").textContent = filtered.length.toLocaleString("id-ID");
+
+      empty.classList.add("hidden");
+      renderPagination(filtered.length, totalPages, startIdx, endIdx);
+
+      tbody.innerHTML = pageRows.map((r, idx) => {
+        const bg = idx % 2 === 0 ? "bg-white" : "bg-slate-50/70";
+        const fileName = r.pdfName || `${r.noResi}.pdf`;
+        const driveViewUrl = buildDriveViewUrl(r.pdfUrl);
+
+        const pdfBadge = driveViewUrl
+          ? `
+              <a
+                href="${escapeHtml(driveViewUrl)}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-mono font-semibold max-w-[125px] truncate text-[10px]"
+                title="Buka ${escapeHtml(fileName)} di Google Drive"
+              >
+                <i class="fa-solid fa-file-pdf text-rose-600 shrink-0"></i>
+                <span class="truncate">${escapeHtml(fileName)}</span>
+              </a>
+            `
+          : `
+              <span
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-800 font-mono font-semibold max-w-[125px] truncate text-[10px]"
+                title="Berkas terdata (${escapeHtml(r.pdfUrl)}) - klik Lihat/Unduh untuk mengambil dari Drive"
+              >
+                <i class="fa-solid fa-file-pdf text-amber-600 shrink-0"></i>
+                <span class="truncate">${escapeHtml(fileName)}</span>
+              </span>
+            `;
+
+        const pdfCell = r.pdfUrl
+          ? `
+            <div class="flex flex-col items-center gap-1">
+              ${pdfBadge}
+              <div class="flex items-center gap-1">
+                <button onclick="previewPdf('${escapeHtml(r.noResi)}')" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-blue-50 hover:bg-blue-100 text-[#2b579a] border border-blue-200 cursor-pointer">
+                  <i class="fa-solid fa-eye"></i><span>Lihat</span>
+                </button>
+                <button onclick="downloadPdf('${escapeHtml(r.noResi)}')" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
+                  <i class="fa-solid fa-download"></i><span>Unduh</span>
+                </button>
+                <button onclick="openUploadModal('${escapeHtml(r.noResi)}')" title="Ganti PDF" class="px-1.5 py-0.5 rounded-md text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 cursor-pointer">
+                  <i class="fa-solid fa-rotate"></i>
+                </button>
+              </div>
+            </div>
+          `
+          : `
+            <button onclick="openUploadModal('${escapeHtml(r.noResi)}')" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#4a86e8] hover:bg-[#356ac3] text-white cursor-pointer whitespace-nowrap">
+              <i class="fa-solid fa-cloud-arrow-up"></i><span>Upload PDF</span>
+            </button>
+          `;
+
+        return `
+          <tr class="${bg} hover:bg-blue-50/40 transition">
+            <td class="py-2 px-2 font-mono font-bold text-slate-800 whitespace-nowrap border-r border-slate-100">${escapeHtml(r.noResi)}</td>
+            <td class="py-2 px-2 text-slate-700 border-r border-slate-100 max-w-[130px]" title="${escapeHtml(r.deskripsi)}"><div class="line-clamp-2">${escapeHtml(r.deskripsi)}</div></td>
+            <td class="py-2 px-2 font-mono text-[10px] whitespace-nowrap border-r border-slate-100">${escapeHtml(r.idPelanggan)}</td>
+            <td class="py-2 px-2 font-medium text-slate-800 border-r border-slate-100 max-w-[155px]" title="${escapeHtml(r.penerima)}"><div class="line-clamp-2">${escapeHtml(r.penerima)}</div></td>
+            <td class="py-2 px-2 text-slate-600 border-r border-slate-100 max-w-[175px]" title="${escapeHtml(r.alamat)}"><div class="line-clamp-2">${escapeHtml(r.alamat)}</div></td>
+            <td class="py-2 px-2 text-slate-600 border-r border-slate-100 max-w-[115px]" title="${escapeHtml(r.kota)}"><div class="line-clamp-2">${escapeHtml(r.kota)}</div></td>
+            <td class="py-2 px-2 font-mono font-semibold text-right whitespace-nowrap border-r border-slate-100">${Number(r.totalBea || 0).toLocaleString("id-ID")}</td>
+            <td class="py-2 px-2 whitespace-nowrap border-r border-slate-100">${escapeHtml(r.tglKirim)}</td>
+            <td class="py-2 px-2 border-r border-slate-100 max-w-[95px]" title="${escapeHtml(r.petugas)}"><div class="line-clamp-2">${escapeHtml(r.petugas)}</div></td>
+            <td class="py-2 px-2 font-mono text-[10px] whitespace-nowrap border-r border-slate-100">${escapeHtml(r.nip)}</td>
+            <td class="py-2 px-2 text-center bg-blue-50/20">${pdfCell}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function isValidHttpUrl(url) {
+      return /^https?:\/\//i.test(String(url || "").trim());
+    }
+
+    function extractDriveFileId(url) {
+      const raw = String(url || "").trim();
+      const m = raw.match(/\/d\/([a-zA-Z0-9_-]+)|[?&]id=([a-zA-Z0-9_-]+)/);
+      if (m) return m[1] || m[2];
+      if (/^[a-zA-Z0-9_-]{20,}$/.test(raw) && !raw.includes(".")) return raw;
+      return "";
+    }
+
+    function buildDriveViewUrl(url) {
+      const fileId = extractDriveFileId(url);
+      if (fileId) return `https://drive.google.com/file/d/${fileId}/view`;
+      return isValidHttpUrl(url) ? String(url).trim() : "";
+    }
+
+    function buildDrivePreviewUrl(url) {
+      const fileId = extractDriveFileId(url);
+      if (fileId) return `https://drive.google.com/file/d/${fileId}/preview`;
+      return isValidHttpUrl(url) ? String(url).trim() : "";
+    }
+
+    function buildDriveDownloadUrl(url) {
+      const fileId = extractDriveFileId(url);
+      if (fileId) return `https://drive.google.com/uc?export=download&id=${fileId}`;
+      return isValidHttpUrl(url) ? String(url).trim() : "";
+    }
+
+    function goToPage(page) {
+      currentPage = page;
+      renderTable();
+      const tableEl = document.getElementById("transactionTableBody");
+      if (tableEl) {
+        tableEl.closest("section").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+
+    function renderPagination(totalItems, totalPages, startIdx, endIdx) {
+      const bar = document.getElementById("paginationBar");
+      const info = document.getElementById("paginationInfo");
+      const controls = document.getElementById("paginationControls");
+
+      bar.classList.remove("hidden");
+      info.innerHTML = `Menampilkan <span class="font-bold text-slate-800">${startIdx + 1}–${endIdx}</span> dari <span class="font-bold text-slate-800">${totalItems.toLocaleString("id-ID")}</span> data • Halaman <span class="font-bold text-slate-800">${currentPage}</span> / ${totalPages}`;
+
+      const pages = [];
+      const delta = 2;
+      const left = Math.max(1, currentPage - delta);
+      const right = Math.min(totalPages, currentPage + delta);
+
+      if (left > 1) {
+        pages.push(1);
+        if (left > 2) pages.push("...");
+      }
+      for (let p = left; p <= right; p++) {
+        pages.push(p);
+      }
+      if (right < totalPages) {
+        if (right < totalPages - 1) pages.push("...");
+        pages.push(totalPages);
+      }
+
+      const btnBase = "px-2.5 py-1.5 rounded-lg font-semibold transition border text-xs ";
+      const btnNormal = btnBase + "bg-white hover:bg-slate-100 text-slate-700 border-slate-200 cursor-pointer";
+      const btnActive = btnBase + "bg-[#4a86e8] text-white border-[#4a86e8]";
+      const btnDisabled = btnBase + "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed";
+
+      let html = "";
+      html += `<button onclick="goToPage(1)" ${currentPage === 1 ? "disabled" : ""} class="${currentPage === 1 ? btnDisabled : btnNormal}" title="Halaman Pertama"><i class="fa-solid fa-angles-left"></i></button>`;
+      html += `<button onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? "disabled" : ""} class="${currentPage === 1 ? btnDisabled : btnNormal}" title="Sebelumnya"><i class="fa-solid fa-chevron-left"></i></button>`;
+
+      pages.forEach(p => {
+        if (p === "...") {
+          html += `<span class="px-1.5 text-slate-400 select-none">...</span>`;
+        } else {
+          html += `<button onclick="goToPage(${p})" class="${p === currentPage ? btnActive : btnNormal}">${p}</button>`;
+        }
+      });
+
+      html += `<button onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? "disabled" : ""} class="${currentPage === totalPages ? btnDisabled : btnNormal}" title="Berikutnya"><i class="fa-solid fa-chevron-right"></i></button>`;
+      html += `<button onclick="goToPage(${totalPages})" ${currentPage === totalPages ? "disabled" : ""} class="${currentPage === totalPages ? btnDisabled : btnNormal}" title="Halaman Terakhir"><i class="fa-solid fa-angles-right"></i></button>`;
+
+      controls.innerHTML = html;
+    }
+
+    function clearSearch() {
+      document.getElementById("searchInput").value = "";
+      document.getElementById("clearSearchBtn").classList.add("hidden");
+      currentPage = 1;
+      renderAll();
+    }
+
+    function openUploadModal(noResi) {
+      const row = rowsData.find(r => r.noResi === noResi);
+      if (!row) return;
+      activeResi = noResi;
+      document.getElementById("uploadTargetResi").textContent = row.noResi;
+      document.getElementById("uploadTargetPenerima").textContent = row.penerima;
+      document.getElementById("uploadAutoFilename").textContent = `${row.noResi}.pdf`;
+      resetSelectedPdf();
+      openModal("modalUploadPdf");
+    }
+
+    function handlePdfFileSelected(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+        showToast("Harap pilih file berekstensi .PDF", "error");
+        e.target.value = "";
+        return;
+      }
+      pendingPdfFile = file;
+      document.getElementById("selectedPdfOriginalName").textContent = file.name;
+      document.getElementById("selectedPdfSize").textContent = `${(file.size / 1024).toFixed(1)} KB • Akan disimpan sebagai ${activeResi}.pdf`;
+      document.getElementById("selectedPdfInfo").classList.remove("hidden");
+      document.getElementById("btnConfirmUploadPdf").disabled = false;
+    }
+
+    function resetSelectedPdf() {
+      pendingPdfFile = null;
+      document.getElementById("pdfFileInput").value = "";
+      document.getElementById("selectedPdfInfo").classList.add("hidden");
+      document.getElementById("btnConfirmUploadPdf").disabled = true;
+    }
+
+    function confirmUploadPdf() {
+      if (!pendingPdfFile || !activeResi) return;
+
+      const btn = document.getElementById("btnConfirmUploadPdf");
+      const btnIcon = document.getElementById("uploadPdfBtnIcon");
+      const btnText = document.getElementById("uploadPdfBtnText");
+
+      btn.disabled = true;
+      btnIcon.className = "fa-solid fa-spinner fa-spin";
+      btnText.textContent = "Mengunggah...";
+
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const res = await callGasPost({
+            action: "uploadPDF",
+            noResi: activeResi,
+            fileName: `${activeResi}.pdf`,
+            mimeType: pendingPdfFile.type || "application/pdf",
+            base64Data: reader.result
+          });
+
+          const idx = rowsData.findIndex(r => r.noResi === activeResi);
+          if (idx !== -1) {
+            rowsData[idx].pdfUrl = res.fileUrl || (res.file && res.file.url) || "";
+            rowsData[idx].pdfName = res.fileName || `${activeResi}.pdf`;
+          }
+
+          closeModal("modalUploadPdf");
+          renderAll();
+          showToast(
+            res.updatedRow
+              ? `Berhasil mengunggah ${activeResi}.pdf & memperbarui database!`
+              : `File ${activeResi}.pdf terunggah ke Drive (baris resi tidak ditemukan di Sheet).`,
+            "success"
+          );
+        } catch (err) {
+          showToast("Gagal upload PDF: " + err.message, "error");
+        } finally {
+          btn.disabled = false;
+          btnIcon.className = "fa-solid fa-paper-plane";
+          btnText.textContent = "Unggah ke Drive";
+        }
+      };
+      reader.onerror = () => {
+        btn.disabled = false;
+        btnIcon.className = "fa-solid fa-paper-plane";
+        btnText.textContent = "Unggah ke Drive";
+        showToast("Gagal membaca file PDF dari perangkat.", "error");
+      };
+      reader.readAsDataURL(pendingPdfFile);
+    }
+
+    let activePreviewRow = null;
+    let currentPreviewBlobUrl = "";
+
+    function base64ToBlobUrl(base64Data, mimeType = "application/pdf") {
+      const clean = String(base64Data || "").replace(/^data:[^;]+;base64,/, "");
+      const binary = atob(clean);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: mimeType || "application/pdf" });
+      return URL.createObjectURL(blob);
+    }
+
+    function triggerBlobDownload(blobUrl, fileName) {
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = fileName || "berkas.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    async function fetchPdfBlobFromGas(row) {
+      const fileId = extractDriveFileId(row.pdfUrl);
+      const res = await callGasGet({
+        action: "getPdfData",
+        fileId: fileId || "",
+        noResi: row.noResi || ""
+      });
+      if (!res || !res.base64Data) {
+        throw new Error("Data PDF kosong dari server.");
+      }
+      if (res.fileUrl && !isValidHttpUrl(row.pdfUrl)) {
+        row.pdfUrl = res.fileUrl;
+      }
+      return {
+        blobUrl: base64ToBlobUrl(res.base64Data, res.mimeType || "application/pdf"),
+        fileName: res.fileName || row.pdfName || `${row.noResi}.pdf`,
+        fileUrl: res.fileUrl || buildDriveViewUrl(row.pdfUrl)
+      };
+    }
+
+    async function previewPdf(noResi) {
+      const row = rowsData.find(r => r.noResi === noResi);
+      if (!row || !row.pdfUrl) return;
+
+      activePreviewRow = row;
+      if (currentPreviewBlobUrl) {
+        URL.revokeObjectURL(currentPreviewBlobUrl);
+        currentPreviewBlobUrl = "";
+      }
+
+      const frame = document.getElementById("pdfPreviewFrame");
+      const loadingEl = document.getElementById("pdfPreviewLoading");
+      const errorEl = document.getElementById("pdfPreviewError");
+      const errorTextEl = document.getElementById("pdfPreviewErrorText");
+      const openTabBtn = document.getElementById("btnModalOpenNewTab");
+
+      document.getElementById("previewPdfTitle").textContent = row.pdfName || `${noResi}.pdf`;
+      document.getElementById("previewPdfSubtitle").textContent = `No Resi: ${row.noResi} • Penerima: ${row.penerima}`;
+      frame.src = "about:blank";
+      errorEl.classList.add("hidden");
+      loadingEl.classList.remove("hidden");
+
+      const initialViewUrl = buildDriveViewUrl(row.pdfUrl);
+      if (initialViewUrl) {
+        openTabBtn.href = initialViewUrl;
+        openTabBtn.classList.remove("hidden");
+      } else {
+        openTabBtn.href = "#";
+        openTabBtn.classList.add("hidden");
+      }
+
+      openModal("modalPreviewPdf");
+
+      try {
+        const fetched = await fetchPdfBlobFromGas(row);
+        if (!activePreviewRow || activePreviewRow.noResi !== noResi) {
+          URL.revokeObjectURL(fetched.blobUrl);
+          return;
+        }
+        currentPreviewBlobUrl = fetched.blobUrl;
+        if (fetched.fileUrl) {
+          openTabBtn.href = fetched.fileUrl;
+          openTabBtn.classList.remove("hidden");
+        }
+        frame.src = currentPreviewBlobUrl;
+        loadingEl.classList.add("hidden");
+      } catch (err) {
+        if (!activePreviewRow || activePreviewRow.noResi !== noResi) return;
+        loadingEl.classList.add("hidden");
+        const fallbackPreview = buildDrivePreviewUrl(row.pdfUrl);
+        if (fallbackPreview) {
+          frame.src = fallbackPreview;
+        } else {
+          errorTextEl.textContent =
+            `Isi kolom FILE PDF di sheet hanya berupa "${row.pdfUrl}" (bukan tautan Google Drive yang valid) dan berkas belum ditemukan di folder Drive. Pastikan kode Apps Script terbaru sudah di-deploy ulang atau unggah ulang file PDF.`;
+          errorEl.classList.remove("hidden");
+        }
+      }
+    }
+
+    async function downloadPdf(noResi) {
+      const row = rowsData.find(r => r.noResi === noResi);
+      if (!row || !row.pdfUrl) return;
+
+      const fileName = row.pdfName || `${row.noResi}.pdf`;
+      showToast(`Menyiapkan unduhan ${fileName}...`, "info");
+      try {
+        const fetched = await fetchPdfBlobFromGas(row);
+        triggerBlobDownload(fetched.blobUrl, fetched.fileName);
+        setTimeout(() => URL.revokeObjectURL(fetched.blobUrl), 15000);
+        showToast(`Berhasil mengunduh ${fetched.fileName}.`, "success");
+      } catch (err) {
+        const fallbackUrl = buildDriveDownloadUrl(row.pdfUrl);
+        if (fallbackUrl) {
+          window.open(fallbackUrl, "_blank", "noopener,noreferrer");
+        } else {
+          showToast("Gagal mengunduh PDF: " + err.message, "error");
+        }
+      }
+    }
+
+    async function downloadActivePreviewPdf() {
+      if (!activePreviewRow) return;
+      const fileName = activePreviewRow.pdfName || `${activePreviewRow.noResi}.pdf`;
+      if (currentPreviewBlobUrl) {
+        triggerBlobDownload(currentPreviewBlobUrl, fileName);
+        showToast(`Mengunduh ${fileName}...`, "success");
+        return;
+      }
+      await downloadPdf(activePreviewRow.noResi);
+    }
+
+    function closePreviewModal() {
+      activePreviewRow = null;
+      closeModal("modalPreviewPdf");
+      document.getElementById("pdfPreviewFrame").src = "about:blank";
+      document.getElementById("pdfPreviewLoading").classList.add("hidden");
+      document.getElementById("pdfPreviewError").classList.add("hidden");
+      if (currentPreviewBlobUrl) {
+        URL.revokeObjectURL(currentPreviewBlobUrl);
+        currentPreviewBlobUrl = "";
+      }
+    }
+
+    function normalizeHeaderKey(header) {
+      return String(header || "").replace(/^\uFEFF/, "").replace(/^"|"$/g, "").trim().replace(/\s+/g, " ").toLowerCase();
+    }
+
+    function handleCsvUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const btn = document.getElementById("btnImportCsv");
+      const btnText = document.getElementById("btnImportCsvText");
+      btn.disabled = true;
+      btnText.textContent = "Mengimpor CSV...";
+
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        try {
+          const lines = String(ev.target.result || "").split(/\r?\n/).filter(l => l.trim() !== "");
+          if (lines.length <= 1) {
+            throw new Error("File CSV kosong atau tidak memiliki baris data.");
+          }
+
+          const delimiter = lines[0].includes(";") ? ";" : ",";
+          const headers = parseLine(lines[0], delimiter).map(normalizeHeaderKey);
+
+          const records = [];
+          for (let i = 1; i < lines.length; i++) {
+            const cols = parseLine(lines[i], delimiter);
+            const record = {};
+            let hasValue = false;
+
+            headers.forEach((h, idx) => {
+              if (!h) return;
+              const val = cols[idx] !== undefined ? cols[idx].replace(/^"|"$/g, "").trim() : "";
+              if (val !== "") hasValue = true;
+              record[h] = val;
+            });
+
+            if (hasValue) {
+              records.push(record);
+            }
+          }
+
+          if (records.length === 0) {
+            throw new Error("Tidak ada baris valid untuk dikirim ke server.");
+          }
+
+          const res = await callGasPost({
+            action: "uploadCSV",
+            data: records
+          });
+
+          showToast(
+            `Impor CSV selesai: ${res.inserted || 0} data baru ditambahkan, ${res.duplicate || 0} duplikat dilewati.`,
+            "success"
+          );
+          await fetchTransactionsFromServer(false);
+        } catch (err) {
+          showToast("Gagal impor CSV: " + err.message, "error");
+        } finally {
+          btn.disabled = false;
+          btnText.textContent = "Impor CSV ke Database";
+          e.target.value = "";
+        }
+      };
+      reader.onerror = () => {
+        btn.disabled = false;
+        btnText.textContent = "Impor CSV ke Database";
+        e.target.value = "";
+        showToast("Gagal membaca file CSV.", "error");
+      };
+      reader.readAsText(file, "UTF-8");
+    }
+
+    function parseLine(line, delimiter) {
+      const out = [];
+      let cur = "";
+      let q = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') q = !q;
+        else if (ch === delimiter && !q) { out.push(cur); cur = ""; }
+        else cur += ch;
+      }
+      out.push(cur);
+      return out;
+    }
+
+    function openModal(id) {
+      document.getElementById(id).classList.remove("hidden");
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add("hidden");
+    }
+
+    function escapeHtml(s) {
+      if (s === null || s === undefined) return "";
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
