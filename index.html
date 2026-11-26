@@ -35,12 +35,41 @@
     ::-webkit-scrollbar-thumb:hover {
       background: #94a3b8;
     }
+    #loginPage {
+      position: relative;
+      isolation: isolate;
+      background-color: #f1f5f9;
+    }
+    #loginPage::before {
+      content: "";
+      position: absolute;
+      inset: -12px;
+      z-index: -1;
+      background: url('background.jfif') center / cover no-repeat;
+      filter: blur(12px);
+      transform: scale(1.03);
+      pointer-events: none;
+    }
+    #loginPage::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background-image: linear-gradient(rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.16)), url('background.jfif');
+      background-size: cover, cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+      pointer-events: none;
+    }
+    #loginPage > * {
+      position: relative;
+      z-index: 1;
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
 
-  <section id="loginPage" class="flex-1 flex items-center sm:items-end justify-center sm:justify-end px-4 sm:px-8 sm:pr-0 lg:px-20 py-4 sm:pb-6 bg-slate-100 bg-no-repeat"
-    style="background-image: linear-gradient(rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.16)), url('background.jfif'); background-size: cover; background-position: center center; background-repeat: no-repeat;">
+  <section id="loginPage" class="flex-1 flex items-center sm:items-end justify-center sm:justify-end px-4 sm:px-8 sm:pr-0 lg:px-20 py-4 sm:pb-6 bg-slate-100 bg-no-repeat">
     <div class="w-full max-w-[280px] bg-white/65 backdrop-blur-sm rounded-2xl shadow-xl border border-white/70 overflow-hidden">
       <form id="loginForm" onsubmit="loginUser(event)" class="p-2.5 space-y-1.5">
         <div>
