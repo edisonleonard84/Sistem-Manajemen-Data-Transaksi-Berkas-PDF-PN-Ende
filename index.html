@@ -39,59 +39,48 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
 
-  <section id="loginPage" class="flex-1 flex items-center justify-center px-4 py-10 bg-gradient-to-br from-slate-100 via-blue-50 to-slate-200">
-    <div class="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
-      <div class="bg-gradient-to-r from-[#2b579a] via-[#3b71ca] to-[#4a86e8] px-7 py-7 text-white">
-        <div class="flex items-center gap-3">
-          <div class="bg-white px-2.5 py-1.5 rounded-xl shadow-sm shrink-0">
-            <img src="posind-logo.png" alt="Logo PosIND" class="h-10 w-auto object-contain" />
-          </div>
-          <div>
-            <p class="text-xs font-semibold text-blue-100">LNMAPN05863A - PN ENDE</p>
-            <h1 class="text-lg font-bold leading-snug">Arsip Pengiriman & Berkas PDF</h1>
-          </div>
-        </div>
-      </div>
-      <form id="loginForm" onsubmit="loginUser(event)" class="p-7 space-y-5">
+  <section id="loginPage" class="flex-1 flex items-center sm:items-end justify-center sm:justify-end px-4 sm:px-8 sm:pr-0 lg:px-20 py-4 sm:pb-6 bg-slate-100 bg-no-repeat"
+    style="background-image: linear-gradient(rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.16)), url('background.jfif'); background-size: cover; background-position: center center; background-repeat: no-repeat;">
+    <div class="w-full max-w-[280px] bg-white/65 backdrop-blur-sm rounded-2xl shadow-xl border border-white/70 overflow-hidden">
+      <form id="loginForm" onsubmit="loginUser(event)" class="p-2.5 space-y-1.5">
         <div>
           <h2 class="text-xl font-bold text-slate-800">Masuk ke sistem</h2>
           <p class="text-sm text-slate-500 mt-1">Hubungi Admin Jika Terkendala Username dan Pasword</p>
         </div>
         <div>
-          <label for="loginUsername" class="block text-xs font-semibold text-slate-600 mb-1.5">Username</label>
+          <label for="loginUsername" class="block text-xs font-semibold text-slate-600 mb-1">Username</label>
           <input id="loginUsername" name="username" type="text" autocomplete="username" required
-            class="w-full px-3.5 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4a86e8] focus:bg-white" />
+            class="w-full px-3.5 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4a86e8] focus:bg-white" />
         </div>
         <div>
-          <label for="loginPassword" class="block text-xs font-semibold text-slate-600 mb-1.5">Password</label>
+          <label for="loginPassword" class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
           <input id="loginPassword" name="password" type="password" autocomplete="current-password" required
-            class="w-full px-3.5 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4a86e8] focus:bg-white" />
+            class="w-full px-3.5 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4a86e8] focus:bg-white" />
         </div>
         <p id="loginError" class="hidden text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3.5 py-2.5" role="alert"></p>
         <button id="loginSubmitBtn" type="submit"
-          class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold bg-[#2b579a] hover:bg-[#23477e] disabled:opacity-60 text-white shadow-sm transition">
+          class="w-full inline-flex items-center justify-center gap-2 px-4 py-1.5 rounded-xl text-sm font-semibold bg-[#2b579a] hover:bg-[#23477e] disabled:opacity-60 text-white shadow-sm transition">
           <i id="loginSubmitIcon" class="fa-solid fa-right-to-bracket"></i>
           <span id="loginSubmitText">Masuk</span>
         </button>
       </form>
-      <div class="px-7 pb-6">
+      <div class="px-3 pb-2">
         <a href="https://wa.me/6281339221840" target="_blank" rel="noopener noreferrer"
-          class="flex items-center justify-between gap-3 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition">
-          <span class="flex items-center gap-3 min-w-0">
-            <span class="w-11 h-11 rounded-full bg-blue-100 text-[#2b579a] flex items-center justify-center shrink-0 text-xl">
+          class="flex items-center justify-between gap-2 p-1 rounded-2xl bg-emerald-50/90 border border-emerald-200 hover:bg-emerald-100 transition">
+          <span class="flex items-center gap-2 min-w-0">
+            <span class="w-8 h-8 rounded-full bg-blue-100 text-[#2b579a] flex items-center justify-center shrink-0 text-base">
               <i class="fa-solid fa-user-tie" aria-hidden="true"></i>
             </span>
             <span class="min-w-0">
-              <span class="block text-sm font-bold text-slate-800 truncate">Edison Leonard</span>
+              <span class="block text-xs font-bold text-slate-800">Edison Leonard</span>
               <span class="block text-xs text-slate-500">Admin</span>
             </span>
           </span>
-          <span class="flex items-center gap-1.5 text-emerald-700 shrink-0">
-            <i class="fa-brands fa-whatsapp text-xl" aria-hidden="true"></i>
-            <span class="text-xs font-semibold">081339221840</span>
+          <span class="flex items-center gap-1 text-emerald-700 shrink-0">
+            <i class="fa-brands fa-whatsapp text-base" aria-hidden="true"></i>
+            <span class="text-[10px] font-semibold">081339221840</span>
           </span>
         </a>
-        <p class="text-center text-[11px] text-slate-400 mt-4">Sistem Manajemen Data Transaksi • Pengadilan Negeri Ende</p>
       </div>
     </div>
   </section>
@@ -115,7 +104,7 @@
               </span>
             </div>
             <p class="text-xs sm:text-sm text-blue-100 mt-0.5">
-              Arsip Pengiriman & Upload Berkas Relaas • Sheet <code class="bg-white/15 px-1.5 py-0.5 rounded">Data_Transaksi</code>
+              Arsip Pengiriman & Upload Berkas Relaas
             </p>
           </div>
         </div>
@@ -319,7 +308,7 @@
 
       <div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
         <div>
-          Menampilkan <span id="visibleCount" class="font-bold text-slate-700">0</span> dari <span id="totalCount" class="font-bold text-slate-700">0</span> baris transaksi (Tab: <code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">Data_Transaksi</code>)
+          Menampilkan <span id="visibleCount" class="font-bold text-slate-700">0</span> dari <span id="totalCount" class="font-bold text-slate-700">0</span> baris transaksi
         </div>
       </div>
     </section>
@@ -1300,8 +1289,8 @@
           renderAll();
           showToast(
             res.updatedRow
-              ? `Berhasil mengunggah ${activeResi}.pdf & memperbarui database!`
-              : `File ${activeResi}.pdf terunggah ke Drive (baris resi tidak ditemukan di Sheet).`,
+              ? `Berhasil mengunggah ${activeResi}.pdf & memperbarui database. Folder Drive: ${res.folderName || "bulan kirim"}.`
+              : `File ${activeResi}.pdf terunggah ke Drive. Folder: ${res.folderName || "bulan kirim"}.`,
             "success"
           );
         } catch (err) {
